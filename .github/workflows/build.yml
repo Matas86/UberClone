@@ -16,4 +16,4 @@ jobs:
           java-version: '11'
       - uses: pmd/pmd-github-action@v1.3.0
         with:
-          rulesets: 'https://github.com/Matas86/UberClone/tree/Second_branch/.github/workflows/rules.xml'
+          rulesets: './.github/workflows/rules.xml'
