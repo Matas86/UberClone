@@ -17,3 +17,4 @@ jobs:
       - uses: pmd/pmd-github-action@v1.3.0
         with:
           rulesets: './.github/workflows/rules.xml'
+          sourcePath: './'
