@@ -34,83 +34,79 @@ import java.util.Map;
 
 public class CustomerSettingsActivity extends AppCompatActivity {
 
-    private EditText mNameField, mPhoneField;
+    private EditText nameEditTextField, phoneEditTextField;
 
-    private Button mBack, mConfirm;
+    private Button backButton, confirmButton;
 
-    private ImageView mProfileImage;
+    private ImageView profileImageView;
 
-    private FirebaseAuth mAuth;
-    private DatabaseReference mCustomerDatabase;
+    private FirebaseAuth firebaseAuth;
+    private DatabaseReference customerDatabase;
 
     private String userID;
-    private String mName;
-    private String mPhone;
-    private String mProfileImageUrl;
+    private String userName;
+    private String userPhone;
+    private String userImageViewUrl;
 
     private Uri resultUri;
 
+    private static final int correct_request_code = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_customer_settings);
 
-        mNameField = (EditText) findViewById(R.id.name);
-        mPhoneField = (EditText) findViewById(R.id.phone);
+        nameEditTextField = (EditText) findViewById(R.id.name);
+        phoneEditTextField = (EditText) findViewById(R.id.phone);
 
-        mProfileImage = (ImageView) findViewById(R.id.profileImage);
+        profileImageView = (ImageView) findViewById(R.id.profileImage);
 
-        mBack = (Button) findViewById(R.id.back);
-        mConfirm = (Button) findViewById(R.id.confirm);
+        backButton = (Button) findViewById(R.id.back);
+        confirmButton = (Button) findViewById(R.id.confirm);
 
-        mAuth = FirebaseAuth.getInstance();
-        userID = mAuth.getCurrentUser().getUid();
-        mCustomerDatabase = FirebaseDatabase.getInstance().getReference().child("Users").child("Customers").child(userID);
+        firebaseAuth = FirebaseAuth.getInstance();
+        userID = firebaseAuth.getCurrentUser().getUid();
+        customerDatabase = FirebaseDatabase.getInstance()
+                .getReference()
+                .child("Users")
+                .child("Customers")
+                .child(userID);
 
-        getUserInfo();
+        initDatabaseListeners();
 
-        mProfileImage.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(Intent.ACTION_PICK);
-                intent.setType("image/*");
-                startActivityForResult(intent, 1);
-            }
+        profileImageView.setOnClickListener(view -> {
+            Intent intent = new Intent(Intent.ACTION_PICK);
+            intent.setType("image/*");
+            startActivityForResult(intent, 1);
         });
 
-        mConfirm.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                saveUserInformation();
-            }
+        confirmButton.setOnClickListener(view -> {
+            saveUserInformation();
         });
 
-        mBack.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                finish();
-                return;
-            }
+        backButton.setOnClickListener(view -> {
+            finish();
         });
     }
-    private void getUserInfo(){
-        mCustomerDatabase.addValueEventListener(new ValueEventListener() {
+
+    private void initDatabaseListeners() {
+        customerDatabase.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                if(dataSnapshot.exists() && dataSnapshot.getChildrenCount()>0){
-                    Map<String, Object> map = (Map<String, Object>) dataSnapshot.getValue();
-                    if(map.get("name")!=null){
-                        mName = map.get("name").toString();
-                        mNameField.setText(mName);
+                if (dataSnapshot.exists() && dataSnapshot.getChildrenCount() > 0) {
+                    Map<String, Object> valueByKey = (Map<String, Object>) dataSnapshot.getValue();
+                    if (valueByKey.get("name") != null) {
+                        userName = valueByKey.get("name").toString();
+                        nameEditTextField.setText(userName);
                     }
-                    if(map.get("phone")!=null){
-                        mPhone = map.get("phone").toString();
-                        mPhoneField.setText(mPhone);
+                    if (valueByKey.get("phone") != null) {
+                        userPhone = valueByKey.get("phone").toString();
+                        phoneEditTextField.setText(userPhone);
                     }
-                    if(map.get("profileImageUrl")!=null){
-                        mProfileImageUrl = map.get("profileImageUrl").toString();
-                        Glide.with(getApplication()).load(mProfileImageUrl).into(mProfileImage);
+                    if (valueByKey.get("profileImageUrl") != null) {
+                        userImageViewUrl = valueByKey.get("profileImageUrl").toString();
+                        Glide.with(getApplication()).load(userImageViewUrl).into(profileImageView);
                     }
                 }
             }
@@ -121,65 +117,54 @@ public class CustomerSettingsActivity extends AppCompatActivity {
         });
     }
 
-
-
     private void saveUserInformation() {
-        mName = mNameField.getText().toString();
-        mPhone = mPhoneField.getText().toString();
+        userName = nameEditTextField.getText().toString();
+        userPhone = phoneEditTextField.getText().toString();
 
-        Map userInfo = new HashMap();
-        userInfo.put("name", mName);
-        userInfo.put("phone", mPhone);
-        mCustomerDatabase.updateChildren(userInfo);
+        Map userInfo = Map.of(
+                "name", userName,
+                "phone", userPhone);
+        customerDatabase.updateChildren(userInfo);
 
-        if(resultUri != null) {
-
-            StorageReference filePath = FirebaseStorage.getInstance().getReference().child("profile_images").child(userID);
-            Bitmap bitmap = null;
-            try {
-                bitmap = MediaStore.Images.Media.getBitmap(getApplication().getContentResolver(), resultUri);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 20, baos);
-            byte[] data = baos.toByteArray();
-            UploadTask uploadTask = filePath.putBytes(data);
-
-            uploadTask.addOnFailureListener(new OnFailureListener() {
-                @Override
-                public void onFailure(@NonNull Exception e) {
-                    finish();
-                    return;
-                }
-            });
-            uploadTask.addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
-                @Override
-                public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
-                    Uri downloadUrl = taskSnapshot.getDownloadUrl();
-
-                    Map newImage = new HashMap();
-                    newImage.put("profileImageUrl", downloadUrl.toString());
-                    mCustomerDatabase.updateChildren(newImage);
-
-                    finish();
-                    return;
-                }
-            });
-        }else{
+        if (resultUri == null) {
             finish();
+            return;
+        }
+        StorageReference filePath = FirebaseStorage.getInstance().getReference().child("profile_images")
+                .child(userID);
+        Bitmap bitmap;
+        try {
+            bitmap = MediaStore.Images.Media.getBitmap(getApplication().getContentResolver(), resultUri);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
 
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 20, baos);
+        byte[] data = baos.toByteArray();
+        UploadTask uploadTask = filePath.putBytes(data);
+
+        uploadTask.addOnFailureListener(view -> {
+            finish();
+        });
+        uploadTask.addOnSuccessListener(view -> {
+            Uri downloadUrl = taskSnapshot.getDownloadUrl();
+
+            Map newImage = Map.of(
+                    "profileImageUrl", downloadUrl.toString());
+            customerDatabase.updateChildren(newImage);
+
+            finish();
+        });
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if(requestCode == 1 && resultCode == Activity.RESULT_OK){
+        if (requestCode == correct_request_code && resultCode == Activity.RESULT_OK) {
             final Uri imageUri = data.getData();
             resultUri = imageUri;
-            mProfileImage.setImageURI(resultUri);
+            profileImageView.setImageURI(resultUri);
         }
     }
 }
