@@ -10,4 +10,4 @@ jobs:
     steps:
       - uses: sfdx-actions/setup-pmd@v1
       - name: run-pmd
-        run: pmd -d Matas86/UberClone/ -R Matas86/UberClone/.github/workflows/rules.xml -f text
+        run: pmd -d Matas86/UberClone/@Second_branch -R Matas86/UberClone/.github/workflows/rules.xml@Second_branch -f text
