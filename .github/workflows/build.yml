@@ -3,11 +3,17 @@ name: PMD Source Code Analyzer on Push
 on: [push]
 
 jobs:
+
   pmd:
   
     runs-on: ubuntu-latest
     
     steps:
-      - uses: sfdx-actions/setup-pmd@v1
-      - name: run-pmd
-        run: pmd -d Matas86/UberClone/@Second_branch -R Matas86/UberClone/.github/workflows/rules.xml@Second_branch -f text
+      - uses: actions/checkout@v3
+      - uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+      - uses: pmd/pmd-github-action@v1
+        with:
+          rulesets: 'rules.xml'
