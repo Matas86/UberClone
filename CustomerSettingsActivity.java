@@ -47,9 +47,7 @@ public class CustomerSettingsActivity extends AppCompatActivity {
     private String userName;
     private String userPhone;
     private String userImageViewUrl;
-
     private Uri resultUri;
-
     private static final int correct_request_code = 1;
 
     @Override
@@ -138,7 +136,6 @@ public class CustomerSettingsActivity extends AppCompatActivity {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         bitmap.compress(Bitmap.CompressFormat.JPEG, 20, baos);
         byte[] data = baos.toByteArray();
